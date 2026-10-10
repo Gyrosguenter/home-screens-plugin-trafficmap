@@ -60,6 +60,13 @@
       });
       traffic = new google.maps.TrafficLayer();
       traffic.setMap(map);
+      // Fenstergröße kann sich nach dem Laden ändern (Auflösungswechsel): Karte nachziehen.
+      if (window.ResizeObserver) {
+        new ResizeObserver(function () {
+          google.maps.event.trigger(map, 'resize');
+          map.setCenter(center);
+        }).observe(document.getElementById('map'));
+      }
       // Die Verkehrsschicht aktualisiert sich selten von selbst: alle 5 Minuten neu einhängen.
       refreshTimer = setInterval(function () { traffic.setMap(null); traffic.setMap(map); }, 5 * 60 * 1000);
     } else {
