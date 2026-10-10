@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Verkehrslage</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #1b1d22; color: #e5e7eb; font-family: system-ui, sans-serif; overflow: hidden; }
+  #map { position: absolute; inset: 0; }
+  #msg { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 24px; font-size: 18px; opacity: .7; }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div id="msg">Warte auf Einstellungen …</div>
+<script>
+/* Kartenseite für das Home-Screens-Plugin "traffic-map".
+ * Der Hub erlaubt Skripte nur von sich selbst, deshalb läuft die Google-Karte
+ * hier in einem iframe. Der API-Key kommt per postMessage vom Modul (nicht
+ * über die URL) und wird nur für das Laden des Google-Skripts verwendet. */
+(function () {
+  var MSG_CONFIG = 'hs-trafficmap-config';
+  var MSG_READY = 'hs-trafficmap-ready';
+  var MSG_ERROR = 'hs-trafficmap-error';
+  var msgEl = document.getElementById('msg');
+  var map = null, traffic = null, marker = null;
+  var loadedKey = null, pending = null, refreshTimer = null;
+
+  var DARK = [
+    { elementType: 'geometry', stylers: [{ color: '#1d2230' }] },
+    { elementType: 'labels.text.stroke', stylers: [{ color: '#1d2230' }] },
+    { elementType: 'labels.text.fill', stylers: [{ color: '#9aa3b5' }] },
+    { featureType: 'administrative.locality', elementType: 'labels.text.fill', stylers: [{ color: '#c9d1e0' }] },
+    { featureType: 'poi', stylers: [{ visibility: 'off' }] },
+    { featureType: 'transit', stylers: [{ visibility: 'off' }] },
+    { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#2c3446' }] },
+    { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#1d2230' }] },
+    { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#3a4560' }] },
+    { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0f1624' }] },
+    { featureType: 'landscape', elementType: 'geometry', stylers: [{ color: '#171c28' }] }
+  ];
+  var LIGHT = [
+    { featureType: 'poi', stylers: [{ visibility: 'off' }] },
+    { featureType: 'transit', stylers: [{ visibility: 'off' }] }
+  ];
+
+  function tell(type, message) {
+    try { window.parent.postMessage({ type: type, message: message }, '*'); } catch (e) {}
+  }
+  function show(text) { msgEl.textContent = text; msgEl.style.display = 'flex'; }
+  function hide() { msgEl.style.display = 'none'; }
+
+  function apply(cfg) {
+    var center = { lat: cfg.lat, lng: cfg.lng };
+    if (!map) {
+      map = new google.maps.Map(document.getElementById('map'), {
+        center: center, zoom: cfg.zoom,
+        disableDefaultUI: true, gestureHandling: 'none', keyboardShortcuts: false,
+        clickableIcons: false, styles: cfg.dark ? DARK : LIGHT
+      });
+      traffic = new google.maps.TrafficLayer();
+      traffic.setMap(map);
+      // Die Verkehrsschicht aktualisiert sich selten von selbst: alle 5 Minuten neu einhängen.
+      refreshTimer = setInterval(function () { traffic.setMap(null); traffic.setMap(map); }, 5 * 60 * 1000);
+    } else {
+      map.setCenter(center);
+      map.setZoom(cfg.zoom);
+      map.setOptions({ styles: cfg.dark ? DARK : LIGHT });
+    }
+    if (cfg.marker) {
+      if (!marker) {
+        marker = new google.maps.Marker({
+          map: map, position: center,
+          icon: { path: google.maps.SymbolPath.CIRCLE, scale: 9, fillColor: '#3b82f6', fillOpacity: 1, strokeColor: '#ffffff', strokeWeight: 3 }
+        });
+      } else { marker.setPosition(center); marker.setMap(map); }
+    } else if (marker) { marker.setMap(null); }
+    hide();
+  }
+
+  window.gm_authFailure = function () {
+    var text = 'Google lehnt den API-Key ab (Referrer-Beschränkung, Abrechnung oder API nicht aktiviert).';
+    show(text);
+    tell(MSG_ERROR, text);
+  };
+
+  window.__hsMapReady = function () { if (pending) apply(pending); };
+
+  function load(cfg) {
+    pending = cfg;
+    if (window.google && window.google.maps) { apply(cfg); return; }
+    if (loadedKey) return; // Skript lädt bereits; apply läuft im Callback
+    loadedKey = cfg.apiKey;
+    show('Karte wird geladen …');
+    var s = document.createElement('script');
+    s.async = true;
+    s.src = 'https://maps.googleapis.com/maps/api/js?key=' + encodeURIComponent(cfg.apiKey) +
+      '&callback=__hsMapReady&loading=async&language=de&region=DE';
+    s.onerror = function () { var t = 'Google Maps konnte nicht geladen werden (offline?).'; show(t); tell(MSG_ERROR, t); loadedKey = null; };
+    document.head.appendChild(s);
+  }
+
+  window.addEventListener('message', function (event) {
+    var d = event.data;
+    if (!d || d.type !== MSG_CONFIG || typeof d.apiKey !== 'string' || !d.apiKey) return;
+    if (loadedKey && d.apiKey !== loadedKey) { location.reload(); return; }
+    load({
+      apiKey: d.apiKey,
+      lat: Number(d.lat), lng: Number(d.lng), zoom: Number(d.zoom) || 13,
+      dark: d.dark !== false, marker: d.marker !== false
+    });
+  });
+
+  tell(MSG_READY);
+})();
+</script>
+</body>
+</html>

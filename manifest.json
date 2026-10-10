@@ -1,0 +1,91 @@
+{
+  "id": "traffic-map",
+  "name": "Verkehrskarte",
+  "version": "0.1.0",
+  "description": "Google-Maps-Karte mit Live-Verkehrslage (rot/gelb/grün), dunkel gestaltet, Kartenmitte frei wählbar",
+  "author": "Gyrosguenter",
+  "license": "MIT",
+  "minAppVersion": "1.0.0",
+  "moduleType": "traffic-map",
+  "category": "Travel",
+  "icon": "Map",
+
+  "defaultConfig": {
+    "apiKey": "",
+    "centerLat": 48.11275,
+    "centerLng": 11.533847,
+    "zoom": 13,
+    "darkMap": true,
+    "showMarker": true
+  },
+
+  "defaultSize": { "w": 800, "h": 1000 },
+
+  "defaultStyle": {
+    "padding": 0,
+    "fontSize": 22,
+    "backgroundColor": "rgba(0, 0, 0, 0.4)",
+    "borderRadius": 12
+  },
+
+  "configSchema": {
+    "type": "object",
+    "properties": {
+      "apiKey": {
+        "type": "string",
+        "title": "Google-Maps-API-Key",
+        "description": "Key mit aktivierter \"Maps JavaScript API\" (Referrer-Beschränkung: https://gyrosguenter.github.io/*).",
+        "ui:widget": "text",
+        "ui:placeholder": "AIza…",
+        "ui:group": "Karte"
+      },
+      "centerLat": {
+        "type": "number",
+        "title": "Kartenmitte Breite",
+        "description": "Breitengrad, z. B. 48.11275 (München).",
+        "ui:widget": "text",
+        "ui:placeholder": "48.11275",
+        "ui:group": "Karte"
+      },
+      "centerLng": {
+        "type": "number",
+        "title": "Kartenmitte Länge",
+        "description": "Längengrad, z. B. 11.533847.",
+        "ui:widget": "text",
+        "ui:placeholder": "11.533847",
+        "ui:group": "Karte"
+      },
+      "zoom": {
+        "type": "number",
+        "title": "Zoom",
+        "description": "10 = Region, 13 = Stadtteil, 16 = Straßen.",
+        "minimum": 8,
+        "maximum": 18,
+        "ui:widget": "slider",
+        "ui:step": 1,
+        "ui:group": "Karte"
+      },
+      "darkMap": {
+        "type": "boolean",
+        "title": "Dunkle Karte",
+        "ui:widget": "toggle",
+        "ui:group": "Karte"
+      },
+      "showMarker": {
+        "type": "boolean",
+        "title": "Punkt in der Kartenmitte",
+        "ui:widget": "toggle",
+        "ui:group": "Karte"
+      }
+    }
+  },
+
+  "exports": {
+    "component": "default"
+  },
+
+  "dataRequirements": [],
+  "prefetchUrl": null,
+  "permissions": ["network", "secrets"],
+  "allowedDomains": []
+}
